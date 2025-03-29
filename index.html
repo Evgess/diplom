@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Todo App</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .todo-item {
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Todo App</h1>
+    <div>
+        <h2>Login</h2>
+        <input type="text" id="username" placeholder="Username">
+        <input type="password" id="password" placeholder="Password">
+        <button onclick="login()">Login</button>
+        <p id="login-message"></p>
+    </div>
+    <div>
+        <h2>Create User</h2>
+        <input type="text" id="new-username" placeholder="New Username">
+        <input type="password" id="new-password" placeholder="New Password">
+        <button onclick="createUser()">Create User</button>
+        <p id="create-user-message"></p>
+    </div>
+    <div>
+        <h2>Todos</h2>
+        <input type="text" id="todo-title" placeholder="Todo Title">
+        <button onclick="createTodo()">Add Todo</button>
+        <div id="todo-list"></div>
+    </div>
+
+    <script>
+        let accessToken = '';
+
+        async function login() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            const response = await fetch('/token', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: new URLSearchParams({ username, password })
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                accessToken = data.access_token;
+                document.getElementById('login-message').innerText = 'Login successful!';
+                loadTodos();
+            } else {
+                document.getElementById('login-message').innerText = 'Login failed.';
+            }
+        }
+
+        async function createUser() {
+            const username = document.getElementById('new-username').value;
+            const password = document.getElementById('new-password').value;
+
+            const response = await fetch('/users/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            });
+
+            if (response.ok) {
+                document.getElementById('create-user-message').innerText = 'User created successfully!';
+            } else {
+                document.getElementById('create-user-message').innerText = 'User creation failed.';
+            }
+        }
+
+        async function createTodo() {
+            if (!accessToken) {
+                alert('Please login first.');
+                return;
+            }
+
+            const title = document.getElementById('todo-title').value;
+
+            const response = await fetch('/todos/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${accessToken}`
+                },
+                body: JSON.stringify({ title })
+            });
+
+            if (response.ok) {
+                document.getElementById('todo-title').value = '';
+                loadTodos();
+            } else {
+                alert('Failed to create todo.');
+            }
+        }
+
+        async function loadTodos() {
+            const response = await fetch('/todos/', {
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`
+                }
+            });
+
+            if (response.ok) {
+                const todos = await response.json();
+                const todoList = document.getElementById('todo-list');
+                todoList.innerHTML = '';
+                todos.forEach(todo => {
+                    const div = document.createElement('div');
+                    div.className = 'todo-item';
+                    div.innerText = todo.title;
+                    todoList.appendChild(div);
+                });
+            }
+        }
+    </script>
+</body>
+</html>
